@@ -6,7 +6,9 @@ import (
 	"log"
 	"errors"
 	"net/url"
-"html/template"
+	"html/template"
+	"io/ioutil"
+	"strings"
 
 )
 
@@ -61,18 +63,67 @@ func resultHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Header.Get("Referer") == "http://localhost:8080/" {
 		
 		if r.Method == http.MethodGet {
-			response, err := http.Get(userInput)
-			_ = response
-			if !checkError(err, w, r) {
-				http.ServeFile(w, r, "static/result.html")
-				// fmt.Fprintf(w, "Response = %s\n", response)
-			}
+			analyzePage(w, r)
 		} 
    } else {
 	var er = errors.New("Cannot access page directly.")
 	checkError(er, w, r)
 	return	
    }
+}
+// Analyzes webpage and creates the data object that is displayed in result page.
+
+func analyzePage(w http.ResponseWriter, r *http.Request) {
+	response, err := http.Get(userInput)
+	if err != nil {
+		var er = errors.New("Cannot get info from URL.")
+		checkError(er, w, r)
+		return	
+	}
+	// Getting html body
+	body, err:= ioutil.ReadAll(response.Body)
+    pageContent := string(body)
+
+	// Getting page title
+	pageTitle:= getPageTitle(pageContent)
+	// Checking if login exists
+	loginExists:=getLoginExists(pageContent)
+
+	// Print out the result
+	fmt.Printf("Page title: %s\n", pageTitle)
+
+	data := map[string]interface{}{"htmlVersion": "012031023021", "pageTitle": pageTitle, "loginForm" : loginExists}
+	outputHTML(w, "static/result.html", data)
+	
+}
+func getLoginExists(pageContent string) bool{
+
+}
+func getPageTitle(pageContent string) string{
+	// Find a substr
+	titleStartIndex := strings.Index(pageContent, "<title>")
+	if titleStartIndex == -1 {
+		fmt.Println("No title element found")
+		return "N/A"
+	}
+	// The start index of the title is the index of the first
+	// character, the < symbol. We don't want to include
+	// <title> as part of the final value, so let's offset
+	// the index by the number of characers in <title>
+	titleStartIndex += 7
+
+	// Find the index of the closing tag
+	titleEndIndex := strings.Index(pageContent, "</title>")
+	if titleEndIndex == -1 {
+		fmt.Println("No closing tag for title found for Title.")
+		return "N/A"
+	}
+
+	// Copy the substring in to a separate variable so the
+	// variables with the full document data can be garbage collected
+	pageTitle := []byte(pageContent[titleStartIndex:titleEndIndex])
+
+	return string(pageTitle)
 }
 // Handles assigning the values from the info that resultHandler retrieves to result.html .
 func outputHTML(w http.ResponseWriter, filename string, data interface{}) {
