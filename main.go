@@ -8,12 +8,11 @@ import (
 )
 
 func main() {
-baseurl:= "https://www.youtube.com/watch?v=u8_JTzSSOIM"
+// baseurl:= "https://www.youtube.com/watch?v=u8_JTzSSOIM"
 
 http.HandleFunc("/", getUserUrl)
 err := http.ListenAndServe(":8080", nil);
 checkError(err)
-getUrlInfo(baseurl)
 }
 
 // Handles the user input.
@@ -31,16 +30,18 @@ func getUserUrl(w http.ResponseWriter, r *http.Request) {
 			checkError(err)
 			
 			url := r.FormValue("url")
-			fmt.Fprintf(w, "Url = %s\n", url)
+			getUrlInfo(url, w)
+			// fmt.Fprintf(w, "Url = %s\n", url)
 		default:
 			fmt.Fprintf(w, "GET and POST methods are supported.")
 		}
 }
 // Handles retrieving information of page.
-func getUrlInfo(url string) {
+func getUrlInfo(url string, w http.ResponseWriter) {
 	response, err := http.Get(url)
 	checkError(err)
-	fmt.Println(response)
+	fmt.Fprintf(w, "Response = %s\n", response)
+
 }
 // Checks for errors from Http request
 func checkError(err error) {
