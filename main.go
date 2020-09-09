@@ -17,14 +17,15 @@ import (
 //URL is a global since we want to access it throughout in different handler methods
 var userInput string
 var mainURL string
+var domainName string
 
 func main() {
-
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/result", resultHandler)
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		log.Fatal(err)
 	}
+
 }
 
 // Handles the user input.
@@ -40,10 +41,10 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "static/home.html")
 	case "POST":
 
-		// If there are no errors we set the url to the user inputß
+		// If there are no errors we set the url to the user input
 		userInput = r.FormValue("url")
 		mainURL = extractMainUrl(userInput)
-
+		domainName = extractDomainName(userInput)
 		// Validating user input to be a real url
 		u, err := url.ParseRequestURI(userInput)
 		_ = u
@@ -76,6 +77,9 @@ func resultHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+func getHeadingsCount() {
+
+}
 
 // Analyzes webpage and creates the data object that is displayed in result page.
 
@@ -87,6 +91,7 @@ func analyzePage(w http.ResponseWriter, r *http.Request) {
 		checkError(er, w, r)
 		return
 	}
+
 	// Getting html body
 	body, err := ioutil.ReadAll(response.Body)
 	pageContent := string(body)
@@ -98,6 +103,7 @@ func analyzePage(w http.ResponseWriter, r *http.Request) {
 	links, err := extractlinks.All(response.Body)
 	internalLinksCount := getInternalLinksCount(links)
 	externalLinksCount := len(links) - internalLinksCount
+	inaccessibleLinksCount := inaccessibleWebsiteCount(links)
 	// Getting html version
 	htmlVersion := getHTMLVersion(pageContent)
 	// Getting page title
@@ -108,16 +114,12 @@ func analyzePage(w http.ResponseWriter, r *http.Request) {
 	// Print out the result
 	fmt.Printf("Page title: %s\n", pageTitle)
 
-	data := map[string]interface{}{"htmlVersion": htmlVersion, "pageTitle": pageTitle, "loginForm": loginExists, "internalLinksCount": internalLinksCount, "externalLinksCount": externalLinksCount}
+	data := map[string]interface{}{"htmlVersion": htmlVersion, "pageTitle": pageTitle, "loginForm": loginExists, "internalLinksCount": internalLinksCount, "externalLinksCount": externalLinksCount, "inaccessibleLinksCount": inaccessibleLinksCount, "url": userInput}
 	outputHTML(w, "static/result.html", data)
 
 }
 func extractMainUrl(content string) string {
 
-	// This is the case where the page is redirecting to itself so it is not using "mainurl" again.
-	if content[0:1] == "/" {
-		return mainURL
-	}
 	startIndex := strings.Index(content, "https://")
 	if startIndex == -1 {
 		return "N/A"
@@ -133,8 +135,57 @@ func extractMainUrl(content string) string {
 		return sliced
 	}
 
-	mainURL = (content[startIndex:endIndex])
-	return mainURL
+	mainURLRet := (content[startIndex:endIndex])
+	return mainURLRet
+}
+func extractDomainName(content string) string {
+	var domain string
+
+	// startIndex := strings.Index(content, "https://")
+	// if startIndex == -1 {
+	// 	return "N/A"
+	// }
+	// startIndex += 8
+
+	// endIndex := strings.Index(content, ".")
+
+	// if content[startIndex:endIndex] == "www" {
+	// 	startIndex += 4
+	// 	sliced := (content[startIndex:len(content)])
+	// 	endIndex = strings.Index(sliced, ".")
+	// 	startIndex = endIndex + 1
+	// 	endIndex = strings.Index(content, ".")
+	// 	domain = sliced
+	// } else {
+	// 	startIndex = endIndex + 1
+	// 	endIndex = strings.Index(content, ".")
+	// 	domain = (content[startIndex:endIndex])
+	// }
+
+	// fmt.Println("domain: %s", domain)
+	return domain
+}
+func inaccessibleWebsiteCount(links []extractlinks.Link) int {
+	var count int
+	for i, link := range links {
+		_ = i
+		currentLink := link.Href
+		// In case of a url that is not defined but is on the home url
+		if string(link.Href[0]) == "/" {
+			currentLink = mainURL + currentLink
+		}
+		fmt.Println("Getting-- > %s", currentLink)
+		resp, err := http.Get(currentLink)
+		if err != nil {
+			count++
+			fmt.Printf("Error getting innaccessible website.")
+			continue
+		}
+		if resp.StatusCode != 200 {
+			count++
+		}
+	}
+	return count
 }
 
 //	Returns internal links of current website

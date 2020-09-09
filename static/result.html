@@ -21,8 +21,11 @@
           >{{.htmlVersion}}</a
         >
       </p>
-      <p><b>Page Title : </b>{{.pageTitle}}</p>
-      <p><b>Headings count by level</b></p>
+      <p>
+        <b>Page Title : </b>
+        <a href="{{.url}}" target="_blank">{{.pageTitle}} </a>
+      </p>
+      <p><b>Headings count by level: </b>????</p>
       <p><b>Amount of internal links: </b> {{.internalLinksCount}}</p>
       <p><b>Amount of external links: </b> {{.externalLinksCount}}</p>
       <p><b>Amount of inaccessible links: </b> {{.inaccessibleLinksCount}}</p>
