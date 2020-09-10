@@ -17,6 +17,7 @@ import (
 //URL is a global since we want to access it throughout in different handler methods
 var userInput string
 var mainURL string
+var hostURL string
 var domainName string
 
 func main() {
@@ -43,8 +44,7 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 
 		// If there are no errors we set the url to the user input
 		userInput = r.FormValue("url")
-		mainURL = extractMainUrl(userInput)
-		domainName = extractDomainName(userInput)
+
 		// Validating user input to be a real url
 		u, err := url.ParseRequestURI(userInput)
 		_ = u
@@ -53,7 +53,10 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 			checkError(er, w, r)
 			return
 		}
-
+		fmt.Println(u.Host)
+		hostURL = u.Host
+		mainURL = extractMainUrl(hostURL)
+		domainName = extractDomainName(hostURL)
 		// Redirecting to result page
 		http.Redirect(w, r, "/result", 302)
 
@@ -103,7 +106,7 @@ func analyzePage(w http.ResponseWriter, r *http.Request) {
 	links, err := extractlinks.All(response.Body)
 	internalLinksCount := getInternalLinksCount(links)
 	externalLinksCount := len(links) - internalLinksCount
-	inaccessibleLinksCount := inaccessibleWebsiteCount(links)
+	inaccessibleLinksCount := getInaccessibleLinks(links)
 	// Getting html version
 	htmlVersion := getHTMLVersion(pageContent)
 	// Getting page title
@@ -120,52 +123,40 @@ func analyzePage(w http.ResponseWriter, r *http.Request) {
 }
 func extractMainUrl(content string) string {
 
-	startIndex := strings.Index(content, "https://")
-	if startIndex == -1 {
-		return "N/A"
+	startIndex := 0
+
+	endIndex := strings.Index(content, ".")
+	fmt.Println("Here for -> ", content)
+	if content[startIndex:endIndex] == "www" {
+		startIndex += 4
+		slicedWWW := (content[startIndex:len(content)])
+		endIndex = strings.Index(slicedWWW, ".")
+		slicedWWW = (content[startIndex:endIndex])
+		return slicedWWW
 	}
-	startIndex += 8
+
+	mainURLRet := (content[startIndex:endIndex])
+	fmt.Println("Returning --> ", mainURLRet)
+
+	return mainURLRet
+}
+func extractDomainName(content string) string {
+	startIndex := 0
 
 	endIndex := strings.Index(content, ".")
 
 	if content[startIndex:endIndex] == "www" {
 		startIndex += 4
-		sliced := (content[startIndex:len(content)])
-		endIndex = strings.Index(sliced, ".")
-		return sliced
+		slicedWWW := (content[startIndex:len(content)])
+		endIndex = strings.Index(slicedWWW, ".")
+		slicedWWW = (content[endIndex+1 : len(content)])
+		return slicedWWW
 	}
 
-	mainURLRet := (content[startIndex:endIndex])
+	mainURLRet := (content[endIndex+1 : len(content)])
 	return mainURLRet
 }
-func extractDomainName(content string) string {
-	var domain string
-
-	// startIndex := strings.Index(content, "https://")
-	// if startIndex == -1 {
-	// 	return "N/A"
-	// }
-	// startIndex += 8
-
-	// endIndex := strings.Index(content, ".")
-
-	// if content[startIndex:endIndex] == "www" {
-	// 	startIndex += 4
-	// 	sliced := (content[startIndex:len(content)])
-	// 	endIndex = strings.Index(sliced, ".")
-	// 	startIndex = endIndex + 1
-	// 	endIndex = strings.Index(content, ".")
-	// 	domain = sliced
-	// } else {
-	// 	startIndex = endIndex + 1
-	// 	endIndex = strings.Index(content, ".")
-	// 	domain = (content[startIndex:endIndex])
-	// }
-
-	// fmt.Println("domain: %s", domain)
-	return domain
-}
-func inaccessibleWebsiteCount(links []extractlinks.Link) int {
+func getInaccessibleLinks(links []extractlinks.Link) int {
 	var count int
 	for i, link := range links {
 		_ = i
@@ -174,7 +165,6 @@ func inaccessibleWebsiteCount(links []extractlinks.Link) int {
 		if string(link.Href[0]) == "/" {
 			currentLink = mainURL + currentLink
 		}
-		fmt.Println("Getting-- > %s", currentLink)
 		resp, err := http.Get(currentLink)
 		if err != nil {
 			count++
@@ -193,17 +183,11 @@ func getInternalLinksCount(links []extractlinks.Link) int {
 	var count int
 	for i, link := range links {
 		_ = i
-		if extractMainUrl(link.Href) == "N/A" {
-			continue
-		}
-		if strings.Contains(extractMainUrl(link.Href), mainURL) {
+		if strings.Contains(link.Href, hostURL) {
 			count++
 		}
 	}
 	return count
-}
-func getInaccessibleLinks(links []extractlinks.Link) {
-
 }
 
 func getHTMLVersion(pageContent string) string {
