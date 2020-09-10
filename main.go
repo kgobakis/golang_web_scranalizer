@@ -53,10 +53,11 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 			checkError(er, w, r)
 			return
 		}
-		fmt.Println(u.Host)
+
 		hostURL = u.Host
 		mainURL = extractMainUrl(hostURL)
 		domainName = extractDomainName(hostURL)
+
 		// Redirecting to result page
 		http.Redirect(w, r, "/result", 302)
 
@@ -80,6 +81,8 @@ func resultHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+// Returns an array with index: level and value: count of headings at level
 func getHeadingsCount() {
 
 }
@@ -104,6 +107,7 @@ func analyzePage(w http.ResponseWriter, r *http.Request) {
 
 	// Extracting links using external package
 	links, err := extractlinks.All(response.Body)
+	// Calculating link info
 	internalLinksCount := getInternalLinksCount(links)
 	externalLinksCount := len(links) - internalLinksCount
 	inaccessibleLinksCount := getInaccessibleLinks(links)
@@ -113,9 +117,6 @@ func analyzePage(w http.ResponseWriter, r *http.Request) {
 	pageTitle := getPageTitle(pageContent)
 	// Checking if login exists
 	loginExists := getLoginExists(pageContent)
-	fmt.Println(loginExists)
-	// Print out the result
-	fmt.Printf("Page title: %s\n", pageTitle)
 
 	data := map[string]interface{}{"htmlVersion": htmlVersion, "pageTitle": pageTitle, "loginForm": loginExists, "internalLinksCount": internalLinksCount, "externalLinksCount": externalLinksCount, "inaccessibleLinksCount": inaccessibleLinksCount, "url": userInput}
 	outputHTML(w, "static/result.html", data)
@@ -126,17 +127,17 @@ func extractMainUrl(content string) string {
 	startIndex := 0
 
 	endIndex := strings.Index(content, ".")
-	fmt.Println("Here for -> ", content)
 	if content[startIndex:endIndex] == "www" {
 		startIndex += 4
 		slicedWWW := (content[startIndex:len(content)])
 		endIndex = strings.Index(slicedWWW, ".")
-		slicedWWW = (content[startIndex:endIndex])
+
+		slicedWWW = (slicedWWW[0:endIndex])
+
 		return slicedWWW
 	}
 
 	mainURLRet := (content[startIndex:endIndex])
-	fmt.Println("Returning --> ", mainURLRet)
 
 	return mainURLRet
 }
@@ -156,25 +157,36 @@ func extractDomainName(content string) string {
 	mainURLRet := (content[endIndex+1 : len(content)])
 	return mainURLRet
 }
+
+//	Returns inaccessible links of current website
 func getInaccessibleLinks(links []extractlinks.Link) int {
 	var count int
 	for i, link := range links {
 		_ = i
 		currentLink := link.Href
-		// In case of a url that is not defined but is on the home url
-		if string(link.Href[0]) == "/" {
-			currentLink = mainURL + currentLink
-		}
-		resp, err := http.Get(currentLink)
-		if err != nil {
-			count++
-			fmt.Printf("Error getting innaccessible website.")
-			continue
-		}
-		if resp.StatusCode != 200 {
-			count++
+
+		if strings.Index(currentLink, ".") != 0 {
+
+			// In case of a url that is not defined but is on the home url
+			if strings.Index(currentLink, "/") == 0 && !strings.Contains(currentLink, "http") {
+				currentLink = hostURL + currentLink
+			}
+			// http.Get only works with http or https before hostname
+			if !strings.Contains(currentLink, "http") {
+				currentLink = "http://" + currentLink
+			}
+			resp, err := http.Get(currentLink)
+			if err != nil {
+				count++
+				log.Fatal(err)
+				continue
+			}
+			if resp.StatusCode != 200 {
+				count++
+			}
 		}
 	}
+	fmt.Println(count)
 	return count
 }
 
@@ -183,7 +195,8 @@ func getInternalLinksCount(links []extractlinks.Link) int {
 	var count int
 	for i, link := range links {
 		_ = i
-		if strings.Contains(link.Href, hostURL) {
+		currentLink := link.Href
+		if strings.Contains(currentLink, mainURL) || strings.Index(currentLink, "/") == 0 {
 			count++
 		}
 	}
@@ -248,6 +261,7 @@ func getLoginExists(pageContent string) string {
 	}
 	return "Yes"
 }
+
 func getPageTitle(pageContent string) string {
 	// Find the beginning html tag of title and store
 	titleStartIndex := strings.Index(pageContent, "<title>")
