@@ -9,8 +9,10 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 
+	"github.com/PuerkitoBio/goquery"
 	"github.com/steelx/extractlinks"
 )
 
@@ -19,6 +21,7 @@ var userInput string
 var mainURL string
 var hostURL string
 var domainName string
+var inaccessibleLinks []string
 
 func main() {
 	http.HandleFunc("/", homeHandler)
@@ -31,6 +34,7 @@ func main() {
 
 // Handles the user input.
 func homeHandler(w http.ResponseWriter, r *http.Request) {
+	inaccessibleLinks = nil
 	if r.URL.Path != "/" {
 		var ErrNotFound = errors.New("Only the home page is accessible.")
 		checkError(ErrNotFound, w, r)
@@ -82,16 +86,10 @@ func resultHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// Returns an array with index: level and value: count of headings at level
-func getHeadingsCount() {
-
-}
-
 // Analyzes webpage and creates the data object that is displayed in result page.
 
 func analyzePage(w http.ResponseWriter, r *http.Request) {
 	response, err := http.Get(userInput)
-	defer response.Body.Close()
 	if err != nil {
 		var er = errors.New("Cannot get info from URL.")
 		checkError(er, w, r)
@@ -102,6 +100,8 @@ func analyzePage(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(response.Body)
 	pageContent := string(body)
 
+	headings := getAllHeadingsCount(pageContent)
+	fmt.Printf("%v", headings)
 	// Resetting response body
 	response.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
@@ -120,8 +120,36 @@ func analyzePage(w http.ResponseWriter, r *http.Request) {
 
 	data := map[string]interface{}{"htmlVersion": htmlVersion, "pageTitle": pageTitle, "loginForm": loginExists, "internalLinksCount": internalLinksCount, "externalLinksCount": externalLinksCount, "inaccessibleLinksCount": inaccessibleLinksCount, "url": userInput}
 	outputHTML(w, "static/result.html", data)
+	response.Body.Close()
 
 }
+func getAllHeadingsCount(content string) [6]int {
+	var headings [6]int
+
+	for i := range headings {
+		headings[i] = getHeadingCount(content, "<h"+strconv.Itoa(i+1))
+	}
+
+	return headings
+}
+
+// Returns the count for each heading passed in
+func getHeadingCount(content string, heading string) int {
+	return strings.Count(content, heading)
+}
+
+func extractLinks(doc *goquery.Document) []string {
+	foundUrls := []string{}
+	if doc != nil {
+		doc.Find("a").Each(func(i int, s *goquery.Selection) {
+			res, _ := s.Attr("href")
+			foundUrls = append(foundUrls, res)
+		})
+		return foundUrls
+	}
+	return foundUrls
+}
+
 func extractMainUrl(content string) string {
 
 	startIndex := 0
@@ -177,8 +205,8 @@ func getInaccessibleLinks(links []extractlinks.Link) int {
 			}
 			resp, err := http.Get(currentLink)
 			if err != nil {
+				inaccessibleLinks = append(inaccessibleLinks, currentLink)
 				count++
-				log.Fatal(err)
 				continue
 			}
 			if resp.StatusCode != 200 {

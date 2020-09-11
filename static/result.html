@@ -25,10 +25,16 @@
         <b>Page Title : </b>
         <a href="{{.url}}" target="_blank">{{.pageTitle}} </a>
       </p>
-      <p><b>Headings count by level: </b>????</p>
+      <p>
+        <b>Headings count by level: </b>
+        h1: {{.h1}} h2: {{.h2}} h3: {{.h3}} h4: {{.h4}} h5: {{.h5}} h6: {{.h6}}
+      </p>
       <p><b>Amount of internal links: </b> {{.internalLinksCount}}</p>
       <p><b>Amount of external links: </b> {{.externalLinksCount}}</p>
-      <p><b>Amount of inaccessible links: </b> {{.inaccessibleLinksCount}}</p>
+      <p>
+        <b>Amount of inaccessible links: </b> {{.inaccessibleLinksCount}} -->
+        {{.inaccessibleLinks}}
+      </p>
       <p><b>Contains login form: </b> {{.loginForm}}</p>
     </div>
   </body>
