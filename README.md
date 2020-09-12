@@ -14,5 +14,5 @@ go run main.go
 
 ## Usage
 
-![alt text](http://url/to/img.png)
-![alt text](http://url/to/img.png)
+![alt text](https://github.com/kgobakis/golang_web_scranalizer/blob/master/static/homepage.png)
+![alt text](https://github.com/kgobakis/golang_web_scranalizer/blob/master/static/resultpage.png)
