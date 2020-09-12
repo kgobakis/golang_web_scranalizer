@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/PuerkitoBio/goquery"
 	"github.com/steelx/extractlinks"
 )
 
@@ -101,7 +100,6 @@ func analyzePage(w http.ResponseWriter, r *http.Request) {
 	pageContent := string(body)
 
 	headings := getAllHeadingsCount(pageContent)
-	fmt.Printf("%v", headings)
 	// Resetting response body
 	response.Body = ioutil.NopCloser(bytes.NewBuffer(body))
 
@@ -118,7 +116,7 @@ func analyzePage(w http.ResponseWriter, r *http.Request) {
 	// Checking if login exists
 	loginExists := getLoginExists(pageContent)
 
-	data := map[string]interface{}{"htmlVersion": htmlVersion, "pageTitle": pageTitle, "loginForm": loginExists, "internalLinksCount": internalLinksCount, "externalLinksCount": externalLinksCount, "inaccessibleLinksCount": inaccessibleLinksCount, "url": userInput}
+	data := map[string]interface{}{"htmlVersion": htmlVersion, "pageTitle": pageTitle, "loginForm": loginExists, "internalLinksCount": internalLinksCount, "externalLinksCount": externalLinksCount, "inaccessibleLinksCount": inaccessibleLinksCount, "url": userInput, "h1": headings[0], "h2": headings[1], "h3": headings[2], "h4": headings[3], "h5": headings[4], "h6": headings[5]}
 	outputHTML(w, "static/result.html", data)
 	response.Body.Close()
 
@@ -136,18 +134,6 @@ func getAllHeadingsCount(content string) [6]int {
 // Returns the count for each heading passed in
 func getHeadingCount(content string, heading string) int {
 	return strings.Count(content, heading)
-}
-
-func extractLinks(doc *goquery.Document) []string {
-	foundUrls := []string{}
-	if doc != nil {
-		doc.Find("a").Each(func(i int, s *goquery.Selection) {
-			res, _ := s.Attr("href")
-			foundUrls = append(foundUrls, res)
-		})
-		return foundUrls
-	}
-	return foundUrls
 }
 
 func extractMainUrl(content string) string {
@@ -214,7 +200,6 @@ func getInaccessibleLinks(links []extractlinks.Link) int {
 			}
 		}
 	}
-	fmt.Println(count)
 	return count
 }
 
@@ -237,7 +222,7 @@ func getHTMLVersion(pageContent string) string {
 	docStartIndex := strings.Index(pageContent, "<!DOCTYPE")
 	if docStartIndex == -1 {
 		fmt.Println("No doc tag found")
-		return "Latest"
+		return ""
 	}
 	// We don't want to include
 	// <DOCTYPE> as part of the final value, so we offset
@@ -248,7 +233,7 @@ func getHTMLVersion(pageContent string) string {
 	docEndIndex := strings.Index(pageContent, ">")
 	if docEndIndex == -1 {
 		fmt.Println("No doc end tag  found")
-		return "Latest"
+		return ""
 	}
 
 	docContent := (pageContent[docStartIndex:docEndIndex])
@@ -256,7 +241,7 @@ func getHTMLVersion(pageContent string) string {
 	versionLookup := strings.Index(docContent, "HTML")
 	if versionLookup == -1 {
 		fmt.Println("No HTML version found")
-		return "Latest"
+		return ""
 	}
 	version := (pageContent[versionLookup : versionLookup+5])
 	return version
@@ -265,7 +250,7 @@ func getLoginExists(pageContent string) string {
 	// Find the beginning html tag of input and store
 	formStartIndex := strings.Index(pageContent, "<form")
 	if formStartIndex == -1 {
-		fmt.Println("No form tag found")
+		fmt.Println("No form closing tag found")
 		return "No"
 	}
 	// We don't want to include

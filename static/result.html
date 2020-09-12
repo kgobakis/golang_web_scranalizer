@@ -1,41 +1,100 @@
+<!DOCTYPE html>
 <html>
-  <style>
-    div {
-      width: 80%;
-      border-radius: 5px;
-      background-color: #f2f2f2;
-      padding: 20px;
-    }
-  </style>
   <head>
-    <title></title>
+    <style>
+      table {
+        font-family: arial, sans-serif;
+        border-collapse: collapse;
+        width: 100%;
+      }
+
+      td,
+      th {
+        border: 1px solid #f5684b;
+        text-align: left;
+        padding: 8px;
+      }
+
+      tr:nth-child(even) {
+        background-color: #e05f45;
+      }
+    </style>
   </head>
   <body>
-    <div>
-      <h2>• Results •</h2>
-      <p>
-        <b>HTML Version :</b>
-        <a
-          href="https://www.google.com/search?q=latest+html+version&oq=latest+&aqs=chrome.0.69i59j69i57j69i61l3.1077j0j7&sourceid=chrome&ie=UTF-8"
-          target="_blank"
-          >{{.htmlVersion}}</a
-        >
-      </p>
-      <p>
-        <b>Page Title : </b>
-        <a href="{{.url}}" target="_blank">{{.pageTitle}} </a>
-      </p>
-      <p>
-        <b>Headings count by level: </b>
-        h1: {{.h1}} h2: {{.h2}} h3: {{.h3}} h4: {{.h4}} h5: {{.h5}} h6: {{.h6}}
-      </p>
-      <p><b>Amount of internal links: </b> {{.internalLinksCount}}</p>
-      <p><b>Amount of external links: </b> {{.externalLinksCount}}</p>
-      <p>
-        <b>Amount of inaccessible links: </b> {{.inaccessibleLinksCount}} -->
-        {{.inaccessibleLinks}}
-      </p>
-      <p><b>Contains login form: </b> {{.loginForm}}</p>
-    </div>
+    <h2>Result Table</h2>
+
+    <table>
+      <tr>
+        <th>HTML Version</th>
+        <th>Page Title</th>
+        <th>Headings # by level</th>
+        <th># of internal links</th>
+        <th># of external links</th>
+        <th># of inaccessible links</th>
+        <th>Login form</th>
+      </tr>
+      <tr>
+        <td>
+          {{if .htmlVersion }}
+          <a
+            href="https://www.google.com/search?q=latest+html+version&oq=latest+&aqs=chrome.0.69i59j69i57j69i61l3.1077j0j7&sourceid=chrome&ie=UTF-8"
+            target="_blank"
+            >Latest</a
+          >
+          {{ else }} {{.htmlVersion}} {{ end }}
+        </td>
+        <td><a href="{{.url}}" target="_blank">{{.pageTitle}} </a></td>
+        <td>h1: {{.h1}}</td>
+        <td>{{.internalLinksCount}}</td>
+        <td>{{.externalLinksCount}}</td>
+        <td>{{.inaccessibleLinksCount}}</td>
+        <td>{{.loginForm}}</td>
+      </tr>
+      <tr>
+        <td></td>
+        <td></td>
+        <td>h2: {{.h2}}</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td></td>
+        <td></td>
+        <td>h3: {{.h3}}</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td></td>
+        <td></td>
+        <td>h4: {{.h4}}</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td></td>
+        <td></td>
+        <td>h5: {{.h5}}</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+      <tr>
+        <td></td>
+        <td></td>
+        <td>h6: {{.h6}}</td>
+        <td></td>
+        <td></td>
+        <td></td>
+        <td></td>
+      </tr>
+    </table>
   </body>
 </html>
